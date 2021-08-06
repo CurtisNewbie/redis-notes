@@ -469,3 +469,308 @@ Never use `keys` in production, because it does a linear scan for all the keys (
 # Chapter 4 Beyond The Data Structures
 
 ## 4.1 Expiration
+
+### 4.1.1 expire
+
+To expire a key after a certain time. The following example, expires the key ('myKey') after 30 seconds.
+
+```
+127.0.0.1:6379> set myKey apple
+OK
+127.0.0.1:6379> expire myKey 30
+(integer) 1
+```
+
+### 4.1.2 expireat
+
+To expire a key at certain time (epoch time).
+
+```
+127.0.0.1:6379> set myKey apple
+OK
+127.0.0.1:6379> expireat myKey 1628243860
+(integer) 1
+```
+
+### 4.1.3 setex
+
+To set a value for a string key, and expire it after a certain time using a single atomic command. In the example below, the key is 'myKey', it expires after 30 seconds, and the value is 'myValue'.
+
+```
+127.0.0.1:6379> setex myKey 30 "myValue"
+OK
+```
+
+### 4.1.4 ttl
+
+To check the time-to-live of a key. In the example below, the returned integer '24' means the ttl is 24 seconds.
+
+```
+127.0.0.1:6379> ttl myKey
+(integer) 24
+```
+
+### 4.1.5 persist
+
+To remove the expiration on a key.
+
+```
+127.0.0.1:6379> persist myKey
+(integer) 1
+```
+
+## 4.2 Publication & Subscription
+
+Redis supports pub/sub to channels. A channel is identified by a key.
+
+### 4.2.1 subscribe, publish
+
+For example, a session subscribes to a channel as follows. The channel's name is 'msgch', and the session is waiting for messages.
+
+```
+127.0.0.1:6379> subscribe msgch
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "msgch"
+3) (integer) 1
+```
+
+Then we can publish a message to the channel, using the `publish` with the same key.
+
+```
+127.0.0.1:6379> publish msgch "Message published"
+(integer) 1
+```
+
+When the message is published, then the subscriber receives a message.
+
+```
+127.0.0.1:6379> subscribe msgch
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "msgch"
+3) (integer) 1
+1) "message"
+2) "msgch"
+3) "Message published"
+```
+
+We can also subscribe to multiple channels as follows. In this example, we subscribes to channel 'ch1', 'ch2', and 'ch3'.
+
+```
+127.0.0.1:6379> subscribe ch1 ch2 ch3
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "ch1"
+3) (integer) 1
+1) "subscribe"
+2) "ch2"
+3) (integer) 2
+1) "subscribe"
+2) "ch3"
+3) (integer) 3
+```
+
+### 4.2.2 unsubscribe, punsubscribe
+
+To unsubscribe one or more channels.
+
+```
+127.0.0.1:6379> unsubscribe ch1 ch2 ch3
+```
+
+To unsubscribe channels based on patterns, we can use `punsubscribe`.
+
+```
+127.0.0.1:6379> punsubscribe ch*
+```
+
+## 4.3 Monitor & Slow Log
+
+### 4.3.1 monitor
+
+We can use `monitor` command to see what Redis is doing, it's primary used for debugging and development.
+
+```
+127.0.0.1:6379> monitor
+```
+
+### 4.3.2 slowlog
+
+`Slowlog` can be used to keep tracks of the comamnd that takes longer than the specified microseconds threshold. The following config, logs all the commands.
+
+```
+config set slowlog-log-slower-than 0
+```
+
+## 4.4 Sort
+
+`sort` command is used to sort values within a list, set. However, the actual values inside the list is not changed. For example, we can sort a list as below, the list's sorted values are returned, but when we try to retrieve these values from the list again, we can see that they are still the same.
+
+```
+127.0.0.1:6379> lpush score 1 8 7 6 3 2 1
+(integer) 7
+127.0.0.1:6379> lrange score 0 -1
+1) "1"
+2) "2"
+3) "3"
+4) "6"
+5) "7"
+6) "8"
+7) "1"
+127.0.0.1:6379> sort score
+1) "1"
+2) "1"
+3) "2"
+4) "3"
+5) "6"
+6) "7"
+7) "8"
+127.0.0.1:6379> lrange score 0 -1
+1) "1"
+2) "2"
+3) "3"
+4) "6"
+5) "7"
+6) "8"
+7) "1"
+
+```
+
+We can do pagination using the sort command as well. As shown in the example below, 'scoreset' is sorted in descending order, the offset is 0, and we takes 3 items.
+
+```
+127.0.0.1:6379> sadd scoreset 1 7 6 5 2 3
+(integer) 6
+127.0.0.1:6379> sort scoreset limit 0 3 desc
+1) "7"
+2) "6"
+3) "5"
+```
+
+We can also ask it to sort lexicographically using **`alpha`**.
+
+```
+127.0.0.1:6379> sadd scoreset A C P I E F
+(integer) 6
+127.0.0.1:6379> sort scoreset limit 1 3 asc alpha
+1) "C"
+2) "E"
+3) "F"
+```
+
+Instead of sorting the values directly, we can use these values to concatenate a new key, and then Redis sort them using the values being referenced (using **`by`** keyword and the **`*`** substitution).
+
+1. we create a set of unique task id:
+
+```
+sadd tasks 12339 1382 338 9338
+```
+
+then we have
+
+tasks -> {
+12339,
+1382,
+338,
+9338
+}
+
+2. we set the priority of these task
+
+```
+set priority:12339 3
+set priority:1382 2
+set priority:338 5
+set priority:9338 4
+```
+
+then we have:
+
+priority:12339 -> 3
+priority:1382 -> 2
+priority:338 -> 5
+priority:9338 -> 4
+
+3. then we can sort these task by their priority rather than task id
+
+```
+sort tasks by priority:* desc
+```
+
+The whole sequence is as follows. Notice that in `priority:*`, the `*` is substituted by the key in 'tasks' set, so Redis concatenate the key, e.g., 'priority:338', 'priority:9338', and sort them based on the retrieved values.
+
+```
+127.0.0.1:6379> sadd tasks 12339 1382 338 9338
+(integer) 4
+127.0.0.1:6379> set priority:12339 3
+OK
+127.0.0.1:6379> set priority:1382 2
+OK
+127.0.0.1:6379> set priority:338 5
+OK
+127.0.0.1:6379> set priority:9338 4
+OK
+127.0.0.1:6379> sort tasks by priority:* desc
+1) "338"
+2) "9338"
+3) "12339"
+4) "1382"
+```
+
+The above feature also works for hashes as well. We can dereference a hash's field in `by` using **`->`**. In the example below, we first substitute the `*` with the value, making 'bug:\*' another key like 'bug:12339'. We then use `->` to dereference to its 'priority' field. Notice the **`get`** in the command, it describes the actual values that we want to retrieve.
+
+```
+sadd watch:leto 12339 1382 338 9338
+
+hset bug:12339 severity 3
+hset bug:12339 priority 1
+hset bug:12339 details '{"id": 12339, ....}'
+
+// ------------------------------
+> bug:12339 -> {
+    severity -> 3
+    priority -> 1
+    details -> '{"id": 12339, ....}'
+}
+// ------------------------------
+
+hset bug:1382 severity 2
+hset bug:1382 priority 2
+hset bug:1382 details '{"id": 1382, ....}'
+
+hset bug:338 severity 5
+hset bug:338 priority 3
+hset bug:338 details '{"id": 338, ....}'
+
+hset bug:9338 severity 4
+hset bug:9338 priority 2
+hset bug:9338 details '{"id": 9338, ....}'
+
+sort watch:leto by bug:*->priority get bug:*->details
+
+// this command returns:
+1) "{\"id\": 12339, ....}"
+2) "{\"id\": 1382, ....}"
+3) "{\"id\": 9338, ....}"
+4) "{\"id\": 338, ....}"
+```
+
+## 4.5 Scan
+
+**`scan`** is a command that fulfills similar purpose of `keys`, and it's production ready. This command is **stateless**, which means that, while we are iterating, keys may be deleted or added, or even returned multiple times.
+
+`scan` doesn't return all matching results in a single call, it uses `cursor`. For the initial call, we supply a '0' as the cursor. We can also provide a `count` hint, but it merely is a hint, the number of results returned may vary.
+
+```
+127.0.0.1:6379> scan 0 match bug:* count 20
+1) "0"
+2) 1) "bug:12339"
+   2) "bug:9338"
+   3) "bug:338"
+   4) "bug:1382"
+```
+
+In this example, the cursor is set to 0, and we are searching keys that match the pattern 'bug:\*', and we provides a count hint as 20. The first line returned '1) "0"', is the next cursor to use. So, returning cursor 0, means that this is the end of the result. Then the following are the keys found.
+
+More related commands include, `hscan`, `sscan` and `zscan`.
