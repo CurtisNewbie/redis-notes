@@ -774,3 +774,57 @@ sort watch:leto by bug:*->priority get bug:*->details
 In this example, the cursor is set to 0, and we are searching keys that match the pattern 'bug:\*', and we provides a count hint as 20. The first line returned '1) "0"', is the next cursor to use. So, returning cursor 0, means that this is the end of the result. Then the following are the keys found.
 
 More related commands include, `hscan`, `sscan` and `zscan`.
+
+# Chapter 5 Lua Scripting
+
+## 5.1 Lua
+
+Lua is supported in Redis, that can be used to write an atomic operation that consists of multiple commands. The script is executed using **`eval`**. Notice that **`{}`** creates an empty table, which is either an array or a dictionary. **`#table_name`** is the number of elements in table, e.g., `#friend_names` is the number of elements in table 'friend_names'. Finally, **`..`** is string concatenation.
+
+### 5.1.1 eval
+
+```
+// 1. say we write create a script called 'sc'
+// (the actual content is represented by '...sc...')
+
+sc = "
+  local friend_names = redis.call('smembers', KEYS[1])
+  local friends = {}
+  for i = 1, #friend_names do
+    local friend_key = 'user:' .. friend_names[i]
+    local gender = redis.call('hget', friend_key, 'gender')
+    if gender == ARGV[1] then
+      table.insert(friends, redis.call('hget', friend_key, 'details'))
+    end
+  end
+  return friends
+";
+
+// 2. we then use eval to interpret and execute the script
+
+eval '...sc...'
+
+```
+
+### 5.1.2 lua-time-limit
+
+There is a configuration **`lua-time-limit`** that defines how long a lua script is allowed to execute, the default is 5 seconds. This can be configured in `redis.conf` or using **`config set lua-time-limit`**.
+
+```
+127.0.0.1:6379> config set lua-time-limit 1
+OK
+```
+
+# Chapter 6 Administration
+
+## 6.1 Configuration
+
+We use **`config get *`** and **`config set *`** to get/set value of a setting.
+
+## 6.2 Authentication
+
+Redis can be configured to require authentication. We can configure **`requirepass`** to asks sessions to provide a password. When `requirepass` is set, client will need to send **`auth 'password'`** to authenticate.
+
+## 6.3 Replication
+
+To enable replication, for an slave instance, we use **`slaveof`** command to configure the master. Without this configuration, the instance is by default a master node.
