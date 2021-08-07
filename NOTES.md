@@ -415,7 +415,7 @@ user:lookup:email -> {
 }
 ```
 
-3. in case that we want to use email to find the value, we can then use hash to first retrieve the id, and then use the id to retrieve the actual value we want.
+In case that we want to use email to find the value, we can then use hash to first retrieve the id, and then use the id to retrieve the actual value we want.
 
 ## 3.2 References and Indexes
 
