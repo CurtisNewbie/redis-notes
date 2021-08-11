@@ -253,13 +253,6 @@ To get an item by index. The list is identified by key 'names', and we are retri
 "curtis"
 ```
 
-Finally, we can flush the database as below:
-
-```
-127.0.0.1:6379> flushdb
-OK
-```
-
 ### 2.3.7 lrange
 
 To get a sublist, we specifiy a range that we want to retrieve, -1 means the last item. In the example below, we retrieve all items in the list.
@@ -378,6 +371,15 @@ To get the rank (0-based) of a element in descending order.
 
 127.0.0.1:6379> zrevrank scores curtis
 (integer) 0
+```
+
+### flushdb
+
+Finally, we can flush the database as below:
+
+```
+127.0.0.1:6379> flushdb
+OK
 ```
 
 # Chapter 3 Leveraging Data Structures
