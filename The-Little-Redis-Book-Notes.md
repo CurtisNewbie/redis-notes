@@ -255,7 +255,7 @@ To get an item by index. The list is identified by key 'names', and we are retri
 
 ### 2.3.7 lrange
 
-To get a sublist, we specifiy a range that we want to retrieve, -1 means the last item. In the example below, we retrieve all items in the list.
+To get a sublist, we specifiy a range that we want to retrieve, -1 simply means the end of the list. In the example below, we retrieve all items in the list. For lrange, both the start and end are inclusive.
 
 ```
 127.0.0.1:6379> lrange names 0 -1
@@ -327,7 +327,7 @@ To get unoin between sets.
 
 ## 2.5 Sorted Sets
 
-The sets that are sorted based on an assigned score, and these scores must be explicitly given. Values are ordered, so we can get the max, min, values within range.
+Sorted sets are sorted based on an assigned score, and these scores must be explicitly assigned. Since values are ordered, we can get the max, min, or sub-set of values within range.
 
 ### 2.5.1 zadd
 
@@ -386,7 +386,7 @@ OK
 
 ## 3.1 Pseudo Multi Key Queries
 
-There are situations where we want to query the same value by different keys. A naive approach will be to have two keys used (set keyA {....} and then set KeyB {....}), but this wastes memory and is hard to manage. A better way to manage this will be to have a key for the value, then use a hash for a group of fields pointing to the real key (for the actual value).
+There are situations where we want to query the same value by different keys. A naive approach will be to use two keys for same value where the values are simply duplicates (e.g., set keyA {....} and then set KeyB {....}), but this wastes memory and is hard to manage. A better way to manage this will be to have a single key for the value, then use a hash for a group of fields pointing to this single key (this single key is just like a handle).
 
 For example:
 
@@ -474,7 +474,7 @@ Never use `keys` in production, because it does a linear scan for all the keys (
 
 ### 4.1.1 expire
 
-To expire a key after a certain time. The following example, expires the key ('myKey') after 30 seconds.
+To expire a key after a certain time. The following example, expires the key ('myKey') after 30 seconds. `set` with options can also do the same thing, for example, '`SET myKey apple EX 10 NX`' (`EX` means seconds, `NX` means only set if not exists).
 
 ```
 127.0.0.1:6379> set myKey apple
@@ -505,7 +505,7 @@ OK
 
 ### 4.1.4 ttl
 
-To check the time-to-live of a key. In the example below, the returned integer '24' means the ttl is 24 seconds.
+To check the time-to-live of a key. In the example below, the returned integer '24' means the ttl is 24 seconds. If the key never expires, `ttl` returns -1.
 
 ```
 127.0.0.1:6379> ttl myKey
@@ -525,7 +525,7 @@ To remove the expiration on a key.
 
 Redis supports pub/sub to channels. A channel is identified by a key.
 
-### 4.2.1 subscribe, publish
+### 4.2.1 subscribe, psubscribe, publish
 
 For example, a session subscribes to a channel as follows. The channel's name is 'msgch', and the session is waiting for messages.
 
@@ -571,6 +571,16 @@ Reading messages... (press Ctrl-C to quit)
 1) "subscribe"
 2) "ch3"
 3) (integer) 3
+```
+
+To subscribe by patterns:
+
+```
+127.0.0.1:6379> psubscribe ch*
+Reading messages... (press Ctrl-C to quit)
+1) "psubscribe"
+2) "ch*"
+3) (integer) 1
 ```
 
 ### 4.2.2 unsubscribe, punsubscribe
