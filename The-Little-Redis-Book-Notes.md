@@ -57,7 +57,7 @@ Redis support five data structures.
 
 ## 2.1 Strings
 
-The key is a plain string. We use `set` and `get` command for this data structure. We may also do some special operations, for example, `strlen <key>` for geting the length of value (not key).
+The value is a plain string. We use `set` and `get` command for this data structure. We may also do some special operations, for example, `strlen <key>` for geting the length of value (not key).
 
 ### 2.1.1 strlen
 
