@@ -80,40 +80,40 @@ A user upvotes an article '123451' (assume these commands are executed within sa
 
 Persudo Code:
 
-0. Pre-calculate score for an up-vote
+1. Pre-calculate score for an up-vote
 
-```
-LET SCORE_OF_AN_UPVOTE = 86,400 / 200
-```
+    ```
+    LET SCORE_OF_AN_UPVOTE = 86,400 / 200
+    ```
 
 1. Check if the article upvoted is posted within this week 
 
-```
-LET posted_time = 'hget article:123451 time'
+    ```
+    LET posted_time = 'hget article:123451 time'
 
-IF posted_time < (NOW - ONE_WEEK_IN_SECONDS)
-THEN 
-    GIVE_UP 
-FI
-```
+    IF posted_time < (NOW - ONE_WEEK_IN_SECONDS)
+    THEN 
+        GIVE_UP 
+    FI
+    ```
 
 2. Increase the score of the article
 
-```
-'zincrby article:sort:score $SCORE_OF_AN_UPVOTE article:123451'
-```
+    ```
+    'zincrby article:sort:score $SCORE_OF_AN_UPVOTE article:123451'
+    ```
 
 3. Incrase the votes of the article
 
-```
-'hincrby article:123451 votes 1'
-```
+    ```
+    'hincrby article:123451 votes 1'
+    ```
 
 4. Record who has voted it
 
-```
-'sadd article:voted:123451 user:32123'
-```
+    ```
+    'sadd article:voted:123451 user:32123'
+    ```
 
 ### 1.2.2 Posting 
 
@@ -121,31 +121,31 @@ A user wants to post a new article.
 
 1. User post the article, and the system uses redis to generate an article id (say, 87654). 
 
-```
-LET next_article_id = 'incr article:lastid'
-```
+    ```
+    LET next_article_id = 'incr article:lastid'
+    ```
 
 2. Set the poster that he/she has been voted for post (this essentially means that the author can't vote article he/she posted). We also make the set expires after a week, because, we don't track this sort of information after a week.
 
-```
-'sadd article:voted:87654 $CURRENT_USER'
-'expire article:voted:87654 $ONE_WEEK_IN_SECONDS'
-```
+    ```
+    'sadd article:voted:87654 $CURRENT_USER'
+    'expire article:voted:87654 $ONE_WEEK_IN_SECONDS'
+    ```
 
 3. Record information about the post into a set.
 
-```
-'hmset article:87654 .......'
-```
+    ```
+    'hmset article:87654 .......'
+    ```
 
 4. Record it into the sorted set for score and time. Notice that the initial score is ("SCORE_OF_AN_UPVOTE + NOW_EPOCH_TIME"), so the posts with same scores are also sorted by time desc.
 
-```
-'zadd article:sort:time $NOW article:87654'
+    ```
+    'zadd article:sort:time $NOW article:87654'
 
-LET INIT_SCORE  = SCORE_OF_AN_UPVOTE + NOW_EPOCH_TIME
-'zadd article:sort:score $INIT_SCORE article:87654'
-```
+    LET INIT_SCORE  = SCORE_OF_AN_UPVOTE + NOW_EPOCH_TIME
+    'zadd article:sort:score $INIT_SCORE article:87654'
+    ```
 
 ### 1.2.3 Grouping Articles
 
@@ -153,39 +153,39 @@ Articles are sometimes grouped. To group articles, we simply provide a set for e
 
 1. Add article to group
 
-```
-'sadd group:default article:123456'
-'sadd group:redis article:123457'
-```
+    ```
+    'sadd group:default article:123456'
+    'sadd group:redis article:123457'
+    ```
 
 2. Remove article from group
 
-```
-'srem group:default article:123456'
-'srem group:redis article:123457'
-```
+    ```
+    'srem group:default article:123456'
+    'srem group:redis article:123457'
+    ```
 
 If users want the articles in group are sorted based on time or score, we can do intersection of these sets or zsets. Items in sets all have a score of 1.
 
 1. Add articles to group 
 
-```
-'sadd group:redis article:123456'
-'sadd group:redis article:123457'
-```
+    ```
+    'sadd group:redis article:123456'
+    'sadd group:redis article:123457'
+    ```
 
 2. Use zset for their scores
 
-```
-'zadd article:sort:score 13311352219.36 article:123456'
-'zadd article:sort:score 13311352220.37 article:123457'
-```
+    ```
+    'zadd article:sort:score 13311352219.36 article:123456'
+    'zadd article:sort:score 13311352220.37 article:123457'
+    ```
 
 2. Intersect the group and the scores, and store the temporary result (as scores may change over time). 'group:sorted:redis" is result of intersection, 2 refers to the number of keys (we intersect two set/zset, thus 2 keys). We can also make it expirt after, say, 60 seconds, and create such intersection only when it's not found.
 
-```
-'zinterstore group:sorted:redis 2 group:redis article:sort:score'
-```
+    ```
+    'zinterstore group:sorted:redis 2 group:redis article:sort:score'
+    ```
 
 # 2. Chapter 2 Anatomy of A Redis Web Application
 
@@ -197,19 +197,19 @@ Simply uses a hash for each user
 
 1. Check if user is logged-in
 
-```
-LET session = 'hgetall session:$USER_NAME' 
-IF !session
-THEN
-   USER_SHOULD_LOG_IN 
-FI
-```
+    ```
+    LET session = 'hgetall session:$USER_NAME' 
+    IF !session
+    THEN
+    USER_SHOULD_LOG_IN 
+    FI
+    ```
 
 2. User is logged-in, create a session for user
 
-```
-RETURN 'hmset session:$USER_NAME recent NOW'
-```
+    ```
+    RETURN 'hmset session:$USER_NAME recent NOW'
+    ```
 
 ### 2.1.2 Track items viewed by user
 
