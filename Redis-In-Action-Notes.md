@@ -1,4 +1,4 @@
-# Redis In Action Notes
+# Redis In Action By Josiah L. Carlson Notes
 
 # 1. Chapter 1 Getting Started
 
